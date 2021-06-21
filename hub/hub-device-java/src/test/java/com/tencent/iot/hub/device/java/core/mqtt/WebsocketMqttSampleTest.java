@@ -73,7 +73,7 @@ public class WebsocketMqttSampleTest {
                 @Override
                 public void onConnected() {
                     LOG.debug("onConnected " + TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).getConnectionState());
-                    unlock();
+                    unlock("onConnected");
                 }
 
                 @Override
@@ -89,7 +89,7 @@ public class WebsocketMqttSampleTest {
                 @Override
                 public void onDisconnected() {
                     LOG.debug("onDisconnected " + TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).getConnectionState());
-                    unlock();
+                    unlock("onDisconnected");
                 }
             });
             TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).connect();
@@ -106,7 +106,8 @@ public class WebsocketMqttSampleTest {
     private static final int TIMEOUT = 3000;
     private static CountDownLatch latch = new CountDownLatch(COUNT);
 
-    private static void lock() {
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
         latch = new CountDownLatch(COUNT);
         try {
             latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -115,7 +116,8 @@ public class WebsocketMqttSampleTest {
         }
     }
 
-    private static void unlock() {
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
         latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
@@ -126,12 +128,12 @@ public class WebsocketMqttSampleTest {
         PropertyConfigurator.configure(WebsocketMqttSampleTest.class.getResource("/log4j.properties"));
 
         websocketConnect();
-        lock();
-        assertSame(TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).getConnectionState(), ConnectionState.CONNECTING);
+        lock("websocketConnect");
+        assertSame(TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).getConnectionState(), ConnectionState.CONNECTED);
         LOG.debug("after websocketConnect");
 
         websocketdisconnect();
-        lock();
+        lock("websocketdisconnect");
         assertSame(TXWebSocketManager.getInstance().getClient(mProductID, mDevName, mDevPSK).getConnectionState(), ConnectionState.DISCONNECTED);
         LOG.debug("after websocketdisconnect");
     }

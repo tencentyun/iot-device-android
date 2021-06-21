@@ -104,7 +104,7 @@ public class OTASampleTest {
                 @Override
                 public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
                     LOG.error("onReportFirmwareVersion:" + resultCode + ", version:" + version + ", resultMsg:" + resultMsg);
-                    unlock();
+                    unlock("onReportFirmwareVersion");
                 }
 
                 @Override
@@ -155,42 +155,8 @@ public class OTASampleTest {
 
             String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]", status.name(), reconnect, userContextInfo, msg);
             LOG.info(logInfo);
-            unlock();
+            unlock("onConnectCompleted");
         }
-
-        private TXOTACallBack oTACallBack = new TXOTACallBack() {
-
-            @Override
-            public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
-                LOG.error("onReportFirmwareVersion:" + resultCode + ", version:" + version + ", resultMsg:" + resultMsg);
-                unlock();
-            }
-
-            @Override
-            public boolean onLastestFirmwareReady(String url, String md5, String version) {
-                LOG.error("onLastestFirmwareReady url=" + url + " version " + version);
-                return false; // false 自动触发下载升级文件  true 需要手动触发下载升级文件
-            }
-
-            @Override
-            public void onDownloadProgress(int percent, String version) {
-                LOG.error("onDownloadProgress:" + percent);
-            }
-
-            @Override
-            public void onDownloadCompleted(String outputFile, String version) {
-                LOG.error("onDownloadCompleted:" + outputFile + ", version:" + version);
-
-                mqttconnection.reportOTAState(TXOTAConstansts.ReportState.DONE, 0, "OK", version);
-            }
-
-            @Override
-            public void onDownloadFailure(int errCode, String version) {
-                LOG.error("onDownloadFailure:" + errCode);
-
-                mqttconnection.reportOTAState(TXOTAConstansts.ReportState.FAIL, errCode, "FAIL", version);
-            }
-        };
 
         @Override
         public void onConnectionLost(Throwable cause) {
@@ -226,7 +192,7 @@ public class OTASampleTest {
                 LOG.debug(logInfo);
                 if (Arrays.toString(asyncActionToken.getTopics()).contains("ota/update/")){   // 订阅ota相关的topic成功
                     otaSubscribeTopicSuccess = true;
-                    unlock();
+                    unlock("onSubscribeCompleted ota");
                 }
             }
         }
@@ -365,7 +331,8 @@ public class OTASampleTest {
     private static CountDownLatch latch = new CountDownLatch(COUNT);
     private static boolean otaSubscribeTopicSuccess = false;
 
-    private static void lock() {
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
         latch = new CountDownLatch(COUNT);
         try {
             latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -374,7 +341,8 @@ public class OTASampleTest {
         }
     }
 
-    private static void unlock() {
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
         latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
@@ -385,12 +353,12 @@ public class OTASampleTest {
         PropertyConfigurator.configure(OTASampleTest.class.getResource("/log4j.properties"));
 
         connect();
-        lock();
+        lock("connect");
         LOG.debug("after connect");
         assertSame(mqttconnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
 
         checkFirmware();
-        lock();
+        lock("checkFirmware");
         assertTrue(otaSubscribeTopicSuccess);
         LOG.debug("checkFirmware subscribe ota");
     }

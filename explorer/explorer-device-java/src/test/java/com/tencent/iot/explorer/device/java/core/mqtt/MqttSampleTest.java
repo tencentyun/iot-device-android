@@ -252,7 +252,7 @@ public class MqttSampleTest {
             String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
                     status.name(), reconnect, userContextInfo, msg);
             LOG.info(logInfo);
-            if (!reconnect){unlock();}
+            if (!reconnect){unlock("onConnectCompleted");}
         }
 
         @Override
@@ -269,7 +269,7 @@ public class MqttSampleTest {
             }
             String logInfo = String.format("onDisconnectCompleted, status[%s], userContext[%s], msg[%s]", status.name(), userContextInfo, msg);
             LOG.info(logInfo);
-            unlock();
+            unlock("onDisconnectCompleted");
         }
 
         @Override
@@ -298,7 +298,7 @@ public class MqttSampleTest {
             }
             if (Arrays.toString(asyncActionToken.getTopics()).contains("thing/down/property") && userContextInfo.contains("subscribeTopic")) {
                 subscribeTopicSuccess = true;
-                unlock();
+                unlock("onSubscribeCompleted");
             }
         }
 
@@ -313,7 +313,7 @@ public class MqttSampleTest {
             LOG.debug(logInfo);
             if (Arrays.toString(asyncActionToken.getTopics()).contains("thing/down/property") && userContextInfo.contains("subscribeTopic")) {
                 unSubscribeTopicSuccess = true;
-                unlock();
+                unlock("onUnSubscribeCompleted");
             }
         }
 
@@ -323,10 +323,10 @@ public class MqttSampleTest {
             LOG.debug(logInfo);
             if (topic.contains("thing/down/property") && message.toString().contains("report_reply") && message.toString().contains("success")) {//上报属性成功消息
                 propertyReportSuccess = true;
-                unlock();
+                unlock("onMessageReceived propertyReport");
             }  else if (topic.contains("thing/down/property") && message.toString().contains("get_status_reply") && message.toString().contains("success") && message.toString().contains("report")) { //获取report状态成功消息
                 propertyGetStatusSuccess = true;
-                unlock();
+                unlock("onMessageReceived propertyGetStatus");
             }
         }
     }
@@ -342,16 +342,16 @@ public class MqttSampleTest {
 
             if (replyMsg.contains("report_info_reply") &&  replyMsg.contains("success")) { //获取report_info状态成功消息
                 propertyReportInfoSuccess = true;
-                unlock();
+                unlock("onReplyCallBack propertyReportInfo");
             } else if (replyMsg.contains("clear_control_reply") &&  replyMsg.contains("success")) { //获取clear_control状态成功消息
                 propertyClearControlSuccess = true;
-                unlock();
+                unlock("onReplyCallBack propertyClearControl");
             } else if (replyMsg.contains("event_reply") &&  replyMsg.contains("\"code\":0")) { //获取event状态成功消息
                 eventSinglePostSuccess = true;
-                unlock();
+                unlock("onReplyCallBack eventSinglePost");
             } else if (replyMsg.contains("events_reply") &&  replyMsg.contains("\"code\":0")) { //获取event状态成功消息
                 eventsPostSuccess = true;
-                unlock();
+                unlock("onReplyCallBack eventsPost");
             }
         }
 
@@ -431,7 +431,8 @@ public class MqttSampleTest {
     private static boolean eventsPostSuccess = false;
     private static boolean unSubscribeTopicSuccess = false;
 
-    private static void lock() {
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
         latch = new CountDownLatch(COUNT);
         try {
             latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -440,7 +441,8 @@ public class MqttSampleTest {
         }
     }
 
-    private static void unlock() {
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
         latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
@@ -452,52 +454,52 @@ public class MqttSampleTest {
         PropertyConfigurator.configure(MqttSampleTest.class.getResource("/log4j.properties"));
 
         connect();
-        lock();
+        lock("connect");
         assertSame(mDataTemplateSample.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
         LOG.debug("after connect");
 
         subscribeTopic();
-        lock();
+        lock("subscribeTopic");
         assertTrue(subscribeTopicSuccess);
         LOG.debug("after subscribe");
 
         propertyReport();
-        lock();
+        lock("propertyReport");
         assertTrue(propertyReportSuccess);
         LOG.debug("after propertyReport");
 
         propertyGetStatus();
-        lock();
+        lock("propertyGetStatus");
         assertTrue(propertyGetStatusSuccess);
         LOG.debug("after propertyGetStatus");
 
         propertyReportInfo();
-        lock();
+        lock("propertyReportInfo");
         assertTrue(propertyReportInfoSuccess);
         LOG.debug("after propertyReportInfo");
 
         propertyClearControl();
-        lock();
+        lock("propertyClearControl");
         assertTrue(propertyClearControlSuccess);
         LOG.debug("after propertyClearControl");
 
         eventSinglePost();
-        lock();
+        lock("eventSinglePost");
         assertTrue(eventSinglePostSuccess);
         LOG.debug("after eventSinglePost");
 
         eventsPost();
-        lock();
+        lock("eventsPost");
         assertTrue(eventsPostSuccess);
         LOG.debug("after eventsPost");
 
         unSubscribeTopic();
-        lock();
+        lock("unSubscribeTopic");
         assertTrue(unSubscribeTopicSuccess);
         LOG.debug("after unSubscribe");
 
         disconnect();
-        lock();
+        lock("disconnect");
         LOG.debug("after disconnect");
         assertSame(mDataTemplateSample.getConnectStatus(), TXMqttConstants.ConnectStatus.kDisconnected);
     }

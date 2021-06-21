@@ -82,12 +82,7 @@ public class DynregDevSampleTest {
             String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
                     status.name(), reconnect, userContextInfo, msg);
             LOG.info(logInfo);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            unlock();
+            unlock("onConnectCompleted");
         }
 
         @Override
@@ -104,7 +99,7 @@ public class DynregDevSampleTest {
             }
             String logInfo = String.format("onDisconnectCompleted, status[%s], userContext[%s], msg[%s]", status.name(), userContextInfo, msg);
             LOG.info(logInfo);
-            unlock();
+            unlock("onDisconnectCompleted");
         }
 
         @Override
@@ -263,7 +258,8 @@ public class DynregDevSampleTest {
     private static final int TIMEOUT = 3000;
     private static CountDownLatch latch = new CountDownLatch(COUNT);
 
-    private static void lock() {
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
         latch = new CountDownLatch(COUNT);
         try {
             latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -272,7 +268,8 @@ public class DynregDevSampleTest {
         }
     }
 
-    private static void unlock() {
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
         latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
@@ -283,12 +280,12 @@ public class DynregDevSampleTest {
         PropertyConfigurator.configure(DynregDevSampleTest.class.getResource("/log4j.properties"));
 
         dynReg();
-        lock();
+        lock("dynReg");
         assertSame(mDataTemplateSample.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
         LOG.debug("after dynreg connect");
 
         mDataTemplateSample.disconnect();
-        lock();
+        lock("disconnect");
         assertSame(mDataTemplateSample.getConnectStatus(), TXMqttConstants.ConnectStatus.kDisconnected);
         LOG.debug("after disconnect");
     }

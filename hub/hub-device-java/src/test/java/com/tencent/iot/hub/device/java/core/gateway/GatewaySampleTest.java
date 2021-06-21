@@ -164,7 +164,7 @@ public class GatewaySampleTest {
 			String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
 					status.name(), reconnect, userContextInfo, msg);
 			LOG.info(logInfo);
-			unlock();
+			unlock("onConnectCompleted");
 		}
 
 		private TXOTACallBack oTACallBack = new TXOTACallBack() {
@@ -252,19 +252,19 @@ public class GatewaySampleTest {
 			LOG.debug(logInfo);
 			if (message.toString().contains("\"type\":\"online\"") && message.toString().contains(mSubDevName)) {
 				subdevOnlineSuccess = true;
-				unlock();
+				unlock("onMessageReceived gatewaySubdevOnline");
 			} else if (message.toString().contains("\"type\":\"offline\"") && message.toString().contains(mSubDevName)) {
 				subdevOfflineSuccess = true;
-				unlock();
+				unlock("onMessageReceived gatewaySubdevOffline");
 			} else if (message.toString().contains("\"type\":\"unbind\"") && message.toString().contains(mSubDevName)) {
 				subDevUnbindedSuccess = true;
-				unlock();
+				unlock("onMessageReceived setSubDevUnbinded");
 			} else if (message.toString().contains("\"type\":\"bind\"") && message.toString().contains(mSubDevName)) {
 				subDevBindedSuccess = true;
-				unlock();
+				unlock("onMessageReceived setSubDevBinded");
 			} else if (message.toString().contains("\"type\":\"describe_sub_devices\"")) {
 				checkSubdevRelationSuccess = true;
-				unlock();
+				unlock("onMessageReceived checkSubdevRelation");
 			}
 		}
 	}
@@ -281,7 +281,8 @@ public class GatewaySampleTest {
 	private static boolean checkSubdevRelationSuccess = false;
 	private static boolean subdevOfflineSuccess = false;
 
-	private static void lock() {
+	private static void lock(String tag) {
+		LOG.debug("lock"+tag);
 		latch = new CountDownLatch(COUNT);
 		try {
 			latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -290,7 +291,8 @@ public class GatewaySampleTest {
 		}
 	}
 
-	private static void unlock() {
+	private static void unlock(String tag) {
+		LOG.debug("unlock"+tag);
 		latch.countDown();// 回调执行完毕，唤醒主线程
 	}
 
@@ -301,32 +303,32 @@ public class GatewaySampleTest {
 		PropertyConfigurator.configure(MqttSampleTest.class.getResource("/log4j.properties"));
 
 		connect();
-		lock();
+		lock("connect");
 		assertSame(mqttconnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
 		LOG.debug("after connect");
 
 		setSubDevUnbinded();
-		lock();
+		lock("setSubDevUnbinded");
 		assertTrue(subDevUnbindedSuccess);
 		LOG.debug("after setSubDevUnbinded");
 
 		setSubDevBinded();
-		lock();
+		lock("setSubDevBinded");
 		assertTrue(subDevBindedSuccess);
 		LOG.debug("after setSubDevBinded");
 
 		gatewaySubdevOnline();
-		lock();
+		lock("gatewaySubdevOnline");
 		assertTrue(subdevOnlineSuccess);
 		LOG.debug("after gatewaySubdevOnline");
 
 		checkSubdevRelation();
-		lock();
+		lock("checkSubdevRelation");
 		assertTrue(checkSubdevRelationSuccess);
 		LOG.debug("after checkSubdevRelation");
 
 		gatewaySubdevOffline();
-		lock();
+		lock("gatewaySubdevOffline");
 		assertTrue(subdevOfflineSuccess);
 		LOG.debug("after gatewaySubdevOffline");
 	}

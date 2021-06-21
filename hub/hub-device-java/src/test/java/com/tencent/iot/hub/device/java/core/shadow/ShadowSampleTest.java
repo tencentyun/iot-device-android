@@ -182,7 +182,7 @@ public class ShadowSampleTest {
 
 			String logInfo = String.format("onConnectCompleted, status[%s], userContext[%s], msg[%s]", status.name(), userContextInfo, msg);
 			LOG.info(logInfo);
-			unlock();
+			unlock("onConnectCompleted");
 		}
 
 		/**
@@ -207,7 +207,7 @@ public class ShadowSampleTest {
 			LOG.info(logInfo);
 			if (type.equals("get")) {
 				getDeviceDocumentSuccess = true;
-				unlock();
+				unlock("onRequestCallback getDeviceDocument");
 			}
 	    }
 
@@ -252,7 +252,7 @@ public class ShadowSampleTest {
 
 			if (status == Status.OK && Arrays.toString(token.getTopics()).contains(mTestTopic)) {
 				publishTopicSuccess = true;
-				unlock();
+				unlock("onPublishCompleted mTestTopic");
 			}
 	    }
 
@@ -277,7 +277,7 @@ public class ShadowSampleTest {
 
 			if (Arrays.toString(asyncActionToken.getTopics()).contains(mTestTopic)) {
 				subscribeTopicSuccess = true;
-				unlock();
+				unlock("onSubscribeCompleted mTestTopic");
 			}
 	    }
 
@@ -298,7 +298,7 @@ public class ShadowSampleTest {
 
 			if (status == Status.OK && Arrays.toString(asyncActionToken.getTopics()).contains(mTestTopic)) {
 				unSubscribeTopicSuccess = true;
-				unlock();
+				unlock("onUnSubscribeCompleted mTestTopic");
 			}
 	    }
 	}
@@ -315,7 +315,8 @@ public class ShadowSampleTest {
 	private static boolean getDeviceDocumentSuccess = false;
 	private static boolean registerPropertySuccess = false;
 
-	private static void lock() {
+	private static void lock(String tag) {
+		LOG.debug("lock"+tag);
 		latch = new CountDownLatch(COUNT);
 		try {
 			latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -324,7 +325,8 @@ public class ShadowSampleTest {
 		}
 	}
 
-	private static void unlock() {
+	private static void unlock(String tag) {
+		LOG.debug("unlock"+tag);
 		latch.countDown();// 回调执行完毕，唤醒主线程
 	}
 
@@ -335,27 +337,27 @@ public class ShadowSampleTest {
 		PropertyConfigurator.configure(MqttSampleTest.class.getResource("/log4j.properties"));
 
 		connect();
-		lock();
+		lock("connect");
 		assertSame(mShadowConnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
 		LOG.debug("after connect");
 
 		subscribeTopic();
-		lock();
+		lock("subscribeTopic");
 		assertTrue(subscribeTopicSuccess);
 		LOG.debug("after subscribe");
 
 		publishTopic();
-		lock();
+		lock("publishTopic");
 		assertTrue(publishTopicSuccess);
 		LOG.debug("after publish");
 
 		unSubscribeTopic();
-		lock();
+		lock("unSubscribeTopic");
 		assertTrue(unSubscribeTopicSuccess);
 		LOG.debug("after unSubscribe");
 
 		getDeviceDocument();
-		lock();
+		lock("getDeviceDocument");
 		assertTrue(getDeviceDocumentSuccess);
 		LOG.debug("after getDeviceDocument");
 	}

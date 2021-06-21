@@ -171,7 +171,7 @@ public class MqttSampleTest {
 			String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
 					status.name(), reconnect, userContextInfo, msg);
 			LOG.info(logInfo);
-			unlock();
+			unlock("onConnectCompleted");
 		}
 
 		@Override
@@ -187,7 +187,7 @@ public class MqttSampleTest {
 
 			String logInfo = String.format("onDisconnectCompleted, status[%s], userContext[%s], msg[%s]", status.name(), userContextInfo, msg);
 			LOG.info(logInfo);
-			unlock();
+			unlock("onDisconnectCompleted");
 		}
 
 		@Override
@@ -199,7 +199,7 @@ public class MqttSampleTest {
 			LOG.debug(logInfo);
 			if (status == Status.OK && Arrays.toString(token.getTopics()).contains(mTestTopic)) {
 				publishTopicSuccess = true;
-				unlock();
+				unlock("onPublishCompleted mTestTopic");
 			}
 		}
 
@@ -215,13 +215,13 @@ public class MqttSampleTest {
 				LOG.debug(logInfo);
 				if (Arrays.toString(asyncActionToken.getTopics()).contains(mTestTopic)){ // 订阅mTestTopic成功
 					subscribeTopicSuccess = true;
-					unlock();
+					unlock("onSubscribeCompleted mTestTopic");
 				} else if (Arrays.toString(asyncActionToken.getTopics()).contains("rrpc/rxd")) { // 订阅rrpc Topic成功
 					subscribeRRPCTopicSuccess = true;
-					unlock();
+					unlock("onSubscribeCompleted subscribeRRPCTopic");
 				} else if (Arrays.toString(asyncActionToken.getTopics()).contains("broadcast/rxd")) { // broadcast Topic成功
 					subscribeBroadCastTopicSuccess = true;
-					unlock();
+					unlock("onSubscribeCompleted subscribeBroadCastTopic");
 				}
 			}
 		}
@@ -235,7 +235,7 @@ public class MqttSampleTest {
 			LOG.debug(logInfo);
 			if (status == Status.OK && Arrays.toString(asyncActionToken.getTopics()).contains(mTestTopic)) {
 				unSubscribeTopicSuccess = true;
-				unlock();
+				unlock("onUnSubscribeCompleted mTestTopic");
 			}
 		}
 
@@ -369,7 +369,8 @@ public class MqttSampleTest {
 	private static boolean subscribeRRPCTopicSuccess = false;
 	private static boolean subscribeBroadCastTopicSuccess = false;
 
-	private static void lock() {
+	private static void lock(String tag) {
+		LOG.debug("lock"+tag);
 		latch = new CountDownLatch(COUNT);
 		try {
 			latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -378,7 +379,8 @@ public class MqttSampleTest {
 		}
 	}
 
-	private static void unlock() {
+	private static void unlock(String tag) {
+		LOG.debug("unlock"+tag);
 		latch.countDown();// 回调执行完毕，唤醒主线程
 	}
 
@@ -390,37 +392,37 @@ public class MqttSampleTest {
 		PropertyConfigurator.configure(MqttSampleTest.class.getResource("/log4j.properties"));
 
 		connect();
-		lock();
+		lock("connect");
 		assertSame(mqttconnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
 		LOG.debug("after connect");
 
 		subscribeTopic();
-		lock();
+		lock("subscribeTopic");
 		assertTrue(subscribeTopicSuccess);
 		LOG.debug("after subscribe");
 
 		publishTopic();
-		lock();
+		lock("publishTopic");
 		assertTrue(publishTopicSuccess);
 		LOG.debug("after publish");
 
 		unSubscribeTopic();
-		lock();
+		lock("unSubscribeTopic");
 		assertTrue(unSubscribeTopicSuccess);
 		LOG.debug("after unSubscribe");
 
 		subscribeRRPCTopic();
-		lock();
+		lock("subscribeRRPCTopic");
 		assertTrue(subscribeRRPCTopicSuccess);
 		LOG.debug("after subscribeRRPCTopic");
 
 		subscribeBroadCastTopic();
-		lock();
+		lock("subscribeBroadCastTopic");
 		assertTrue(subscribeBroadCastTopicSuccess);
 		LOG.debug("after subscribeBroadCastTopic");
 
 		disconnect();
-		lock();
+		lock("disconnect");
 		assertSame(mqttconnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kDisconnected);
 		LOG.debug("after disconnect");
 	}

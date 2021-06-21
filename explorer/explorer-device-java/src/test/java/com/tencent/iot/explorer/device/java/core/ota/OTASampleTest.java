@@ -69,7 +69,7 @@ public class OTASampleTest {
             String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
                     status.name(), reconnect, userContextInfo, msg);
             LOG.info(logInfo);
-            unlock();
+            unlock("onConnectCompleted");
         }
 
         @Override
@@ -113,7 +113,7 @@ public class OTASampleTest {
                 LOG.debug(logInfo);
                 if (Arrays.toString(asyncActionToken.getTopics()).contains("ota/update/")){   // 订阅ota相关的topic成功
                     otaSubscribeTopicSuccess = true;
-                    unlock();
+                    unlock("onSubscribeCompleted checkFirmware");
                 }
             }
         }
@@ -214,7 +214,8 @@ public class OTASampleTest {
     private static CountDownLatch latch = new CountDownLatch(COUNT);
     private static boolean otaSubscribeTopicSuccess = false;
 
-    private static void lock() {
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
         latch = new CountDownLatch(COUNT);
         try {
             latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -223,7 +224,8 @@ public class OTASampleTest {
         }
     }
 
-    private static void unlock() {
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
         latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
@@ -234,12 +236,12 @@ public class OTASampleTest {
         PropertyConfigurator.configure(OTASampleTest.class.getResource("/log4j.properties"));
 
         connect();
-        lock();
+        lock("connect");
         assertSame(mDataTemplateSample.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
         LOG.debug("after connect");
 
         checkFirmware();
-        lock();
+        lock("checkFirmware");
         assertTrue(otaSubscribeTopicSuccess);
         LOG.debug("checkFirmware subscribe ota");
 

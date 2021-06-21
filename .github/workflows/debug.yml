@@ -50,7 +50,7 @@ jobs:
       - name: Update SDK Version
         run: bash .github/scripts/updateVersionCodeForSnapshot.sh
       - name: Test with Gradle
-        run: ./gradlew test
+        run: ./gradlew test --info
       - name: Build with Gradle
         run: ./gradlew build -x test
       - name: Publish aar and jar to Maven

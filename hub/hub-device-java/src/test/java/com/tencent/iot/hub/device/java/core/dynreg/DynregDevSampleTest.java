@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import hub.unit.test.BuildConfig;
@@ -126,7 +128,7 @@ public class DynregDevSampleTest {
 
             String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]", status.name(), reconnect, userContextInfo, msg);
             LOG.info(logInfo);
-            unlock();
+            unlock("onConnectCompleted");
         }
 
         private TXOTACallBack oTACallBack = new TXOTACallBack() {
@@ -360,41 +362,33 @@ public class DynregDevSampleTest {
 
     /** ============================================================================== Unit Test ============================================================================== **/
 
-    private static Object mLock = new Object(); // 同步锁
-    private static int mCount = 0; // 加解锁条件
-    private static boolean mUnitTest = false;
+    private static final int COUNT = 1;
+    private static final int TIMEOUT = 3000;
+    private static CountDownLatch latch = new CountDownLatch(COUNT);
 
-    private static void lock() {
-        synchronized (mLock) {
-            mCount = 1;  // 设置锁条件
-            while (mCount > 0) {
-                try {
-                    mLock.wait(); // 等待唤醒
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+    private static void lock(String tag) {
+        LOG.debug("lock"+tag);
+        latch = new CountDownLatch(COUNT);
+        try {
+            latch.await(TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    private static void unlock() {
-        if (mUnitTest) {
-            synchronized (mLock) {
-                mCount = 0;
-                mLock.notifyAll(); // 回调执行完毕，唤醒主线程
-            }
-        }
+    private static void unlock(String tag) {
+        LOG.debug("unlock"+tag);
+        latch.countDown();// 回调执行完毕，唤醒主线程
     }
 
     @Test
     public void testDynregDev() {
-        mUnitTest = true;
         LogManager.resetConfiguration();
         LOG.isDebugEnabled();
         PropertyConfigurator.configure(MqttSampleTest.class.getResource("/log4j.properties"));
 
         dynReg();
-        lock();
+        lock("dynReg");
         LOG.debug("after dynreg connect");
         assertSame(mqttconnection.getConnectStatus(), TXMqttConstants.ConnectStatus.kConnected);
     }
